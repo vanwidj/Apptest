@@ -19,10 +19,7 @@ import { connect } from 'react-redux';
 import globalStyle from '../styles'
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { addContactDetailReq, editContactDetailReq } from '../store/actions'
-import {
-  launchCamera,
-  launchImageLibrary
-} from 'react-native-image-picker';
+import ImagePicker from 'react-native-image-picker';
 
 const EditContact = ({ contact, loading, error, success, route, dispatch, navigation }) => {
   const [form, setForm] = useState(contact)
@@ -34,7 +31,11 @@ const EditContact = ({ contact, loading, error, success, route, dispatch, naviga
 
     if(form.firstName && form.lastName && form.age) {
       if(!form.photo) {
-        form.photo = 'N/A'
+        if(fileUri) {
+          form.photo = fileUri
+        }else {
+          form.photo = 'N/A'
+        }
       }
       if(!isEditType){
         dispatch(addContactDetailReq(form))
@@ -112,42 +113,27 @@ const EditContact = ({ contact, loading, error, success, route, dispatch, naviga
   };
   const captureImage = async (type) => {
     let options = {
-      mediaType: type,
-      maxWidth: 300,
-      maxHeight: 550,
-      quality: 1,
-      videoQuality: 'low',
-      durationLimit: 30, //Video max duration in seconds
-      saveToPhotos: true,
+      title: 'Select Image',
+      storageOptions: {
+        skipBackup: true,
+        path: 'images',
+      },
     };
     let isCameraPermitted = await requestCameraPermission();
     let isStoragePermitted = await requestExternalWritePermission();
     if (isCameraPermitted && isStoragePermitted) {
       try {
-        launchCamera(options, (response) => {
+        ImagePicker.showImagePicker(options, (response) => {
           console.log('Response = ', response);
-  
+     
           if (response.didCancel) {
-            alert('User cancelled camera picker');
-            return;
-          } else if (response.errorCode == 'camera_unavailable') {
-            alert('Camera not available on device');
-            return;
-          } else if (response.errorCode == 'permission') {
-            alert('Permission not satisfied');
-            return;
-          } else if (response.errorCode == 'others') {
-            alert(response.errorMessage);
-            return;
+            console.log('User cancelled image picker');
+          } else if (response.error) {
+            console.log('ImagePicker Error: ', response.error);
+          } else {
+            let source = response.uri;
+            setFileUri(source);
           }
-          console.log('base64 -> ', response.base64);
-          console.log('uri -> ', response.uri);
-          console.log('width -> ', response.width);
-          console.log('height -> ', response.height);
-          console.log('fileSize -> ', response.fileSize);
-          console.log('type -> ', response.type);
-          console.log('fileName -> ', response.fileName);
-          setFileUri(response.uri);
         });
       } catch (err) {
         console.log("Error",error)
